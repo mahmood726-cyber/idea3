@@ -1,0 +1,15 @@
+Metric,Value
+Number of Studies,6
+Total Sample Size,2972
+Test Set Size,595
+Best Method,Causal Forest (EconML)
+PEHE (Best Method),1.055
+Correlation (Predicted vs True),0.868
+R² Heterogeneity,0.709
+Empirical Coverage,100.0%
+Target Coverage,90.0%
+Coverage Error,10.00%
+Mean Interval Width,28.714
+Between-Study τ²,0.117
+I² Statistic,97.4%
+Top Effect Modifier,Age
