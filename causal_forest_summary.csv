@@ -1,0 +1,13 @@
+Metric,Value
+Sample Size (Total),2000
+Sample Size (Training),1200
+Sample Size (Calibration),400
+Sample Size (Test),400
+Average Treatment Effect (ATE),2.775
+Treatment Effect Heterogeneity (Std),1.922
+Min ITE,-2.842
+Max ITE,9.341
+Mean Prediction Interval Width,3.784
+Coverage Level,90%
+Number of Trees,100
+Top Effect Modifier,Covariate_4
