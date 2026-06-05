@@ -29,13 +29,40 @@ Based on rigorous statistical foundations:
 pip install -r requirements.txt
 ```
 
-## Usage
+## Running & tests
 
-Run the complete analysis:
+**Canonical script:** `causal_forest_analysis.py`. It is fully self-contained
+and depends only on numpy, scipy, pandas, scikit-learn, matplotlib and seaborn
+(all in `requirements.txt`). Importing it is side-effect-free — the analysis,
+training, plotting and CSV writing live under `if __name__ == "__main__"`, so
+the `CausalForest` / `ConformalPrediction` classes and `generate_synthetic_ipd`
+can be imported and unit-tested in isolation.
+
+Run the complete analysis (regenerates the bundled PNG and CSV outputs):
 
 ```bash
 python causal_forest_analysis.py
 ```
+
+Run the test suite:
+
+```bash
+python -m pytest -q
+```
+
+The tests (`test_causal_forest.py`) validate the core computations against
+known ground truth: ITE = Y(1) - Y(0) identity and sign, ATE/CATE recovery on
+synthetic data with a known treatment effect, effect-modifier identification,
+the separate treated/control forests, and split-conformal interval coverage.
+
+### Other revisions (optional, extra deps)
+
+`causal_forest_meta_analysis_CORRECTED.py` and
+`causal_forest_FINAL_PUBLICATION_READY.py` are multi-study IPD meta-analysis
+revisions that swap the hand-rolled forest for `econml`'s `CausalForestDML` and
+add SHAP-based effect-modifier importance. They additionally require `econml`
+and `shap` (see `requirements_fixed.txt`) and are **not** needed to run the
+canonical script or the tests.
 
 This will:
 1. Generate synthetic Individual Patient Data (IPD) with heterogeneous treatment effects

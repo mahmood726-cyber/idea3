@@ -5,8 +5,17 @@ Based on:
 - Alaa (2023): Conformal Prediction for Valid Uncertainty Quantification
 """
 
+import sys
+import io
+
+# Ensure Unicode (checkmarks, ±, etc.) print on Windows cp1252 consoles.
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Headless-safe backend; must precede pyplot import
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
@@ -156,14 +165,32 @@ class CausalForest:
         # Predict ITEs for training data
         tau_pred = self.predict(X)
 
-        # For each feature, calculate variance in ITEs across feature values
+        # For each feature, measure how much the *mean* ITE varies across the
+        # range of that feature -- i.e. how strongly the feature modifies the
+        # treatment effect. We bin the feature into quantile groups and take the
+        # variance of the per-bin mean ITE (between-bin variance of group means).
+        #
+        # NOTE: the previous implementation used ``np.var(tau_pred[argsort(x_i)])``,
+        # which is the GLOBAL variance of the ITEs and is invariant to the sort
+        # order -- it returned the same value for every feature (uniform 1/n
+        # importances) and therefore could not identify effect modifiers at all.
+        # Binning + variance-of-group-means is the standard, order-dependent way
+        # to capture "variance in treatment effects across feature values".
+        n_bins = min(10, max(2, X.shape[0] // 50))
         for i in range(n_features):
-            # Sort by feature value
-            sorted_idx = np.argsort(X[:, i])
-            sorted_tau = tau_pred[sorted_idx]
-
-            # Calculate variance across sorted values (effect heterogeneity)
-            importances[i] = np.var(sorted_tau)
+            x_i = X[:, i]
+            # Quantile bin edges (deduplicated to handle ties / low-variance cols).
+            edges = np.unique(np.quantile(x_i, np.linspace(0, 1, n_bins + 1)))
+            if len(edges) < 3:
+                importances[i] = 0.0
+                continue
+            bin_idx = np.clip(np.digitize(x_i, edges[1:-1]), 0, len(edges) - 2)
+            bin_means = [
+                tau_pred[bin_idx == b].mean()
+                for b in range(len(edges) - 1)
+                if np.any(bin_idx == b)
+            ]
+            importances[i] = np.var(bin_means) if len(bin_means) > 1 else 0.0
 
         # Normalize
         if importances.sum() > 0:
@@ -244,9 +271,12 @@ class ConformalPrediction:
         """
         X = np.array(X)
 
-        # Calculate quantile of nonconformity scores
+        # Calculate quantile of nonconformity scores.
+        # Split-conformal rank is ceil((n+1)(1-alpha)); divide by n to get the
+        # quantile level. Clamp to [0, 1] because for small n the rank can equal
+        # or exceed n, which would make np.quantile raise (q_level must be <= 1).
         n = len(self.nonconformity_scores)
-        q_level = np.ceil((n + 1) * (1 - self.alpha)) / n
+        q_level = min(1.0, np.ceil((n + 1) * (1 - self.alpha)) / n)
         quantile = np.quantile(self.nonconformity_scores, q_level)
 
         if treatment is not None:

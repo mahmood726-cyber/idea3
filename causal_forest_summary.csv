@@ -10,4 +10,4 @@ Max ITE,9.341
 Mean Prediction Interval Width,3.784
 Coverage Level,90%
 Number of Trees,100
-Top Effect Modifier,Covariate_4
+Top Effect Modifier,Age
